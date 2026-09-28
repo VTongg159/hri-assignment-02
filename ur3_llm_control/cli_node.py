@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -33,6 +34,11 @@ class TaskCli(Node):
             self.get_logger().warning("student_id is not configured; advanced task is unavailable")
         self.planner = Planner(mode, str(share / "prompts/task_planner.txt"), self.assignment)
         self.client = self.create_client(SetParametersAtomically, "/execute_skill")
+        print(f"PLANNER MODE: {mode}")
+        if mode == "9router":
+            print(f"LLM MODEL: {os.getenv('NINEROUTER_MODEL', '<not configured>')}")
+        else:
+            print("LLM MODEL: not used (offline mock planner)")
         if self.assignment:
             print(f"STUDENT ID: {self.student_id}\nXX: {self.xx}\nP: {self.remainder}\n")
             print("PERSONALIZED TASK")

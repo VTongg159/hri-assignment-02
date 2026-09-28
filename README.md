@@ -88,6 +88,7 @@ export NINEROUTER_MODEL="gemini/gemini-3.6-flash"
 ```
 
 Missing credentials, timeout, HTTP failure, and malformed responses fail closed. JSON and streamed SSE responses are supported. `--mode mock` is only for offline development; the final assessment uses the default live `9router` mode.
+At startup the CLI prints `PLANNER MODE` and `LLM MODEL` as reproducible demo evidence; it never prints the API key.
 
 ## Launch and demos
 
