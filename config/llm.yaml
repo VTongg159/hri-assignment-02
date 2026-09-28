@@ -1,0 +1,3 @@
+llm:
+  mode: 9router
+  timeout_seconds: 30.0

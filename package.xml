@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ur3_llm_control</name>
+  <version>1.0.0</version>
+  <description>Validated natural-language skill planning for a simulated UR3e.</description>
+  <maintainer email="student@example.com">Nguyen Van Tong</maintainer>
+  <license>BSD-3-Clause</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <depend>rclcpp</depend><depend>rclpy</depend>
+  <depend>rclcpp_action</depend><depend>control_msgs</depend><depend>tf2_ros</depend>
+  <depend>geometry_msgs</depend><depend>moveit_msgs</depend><depend>shape_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>moveit_ros_planning_interface</depend><depend>ros_gz_interfaces</depend>
+  <depend>rcl_interfaces</depend><depend>ament_index_python</depend>
+  <depend>std_msgs</depend><depend>visualization_msgs</depend>
+  <exec_depend>python3-yaml</exec_depend><exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend><exec_depend>ur_simulation_gz</exec_depend>
+  <exec_depend>ur_moveit_config</exec_depend>
+  <exec_depend>robotiq_description</exec_depend>
+  <exec_depend>parallel_gripper_controller</exec_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

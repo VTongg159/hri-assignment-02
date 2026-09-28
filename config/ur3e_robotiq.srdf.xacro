@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
+  <xacro:arg name="name" default="ur"/>
+  <xacro:include filename="$(find ur_moveit_config)/srdf/ur_macro.srdf.xacro"/>
+  <xacro:ur_srdf/>
+
+  <!-- Semantic model for the official Robotiq assembly.  The single actuated
+       knuckle drives the other five joints through the URDF mimic relations. -->
+  <group name="robotiq_gripper">
+    <joint name="robotiq_85_left_knuckle_joint"/>
+  </group>
+  <end_effector name="robotiq_2f_85" parent_link="tool0"
+                group="robotiq_gripper" parent_group="ur_manipulator"/>
+
+  <!-- Table-safe neutral pose for the longer UR3e + Robotiq assembly. The
+       upstream "up" state is valid for a bare UR wrist, but a path to it can
+       swing a 2F-85 finger through upper_arm_link. -->
+  <group_state name="hri_home" group="ur_manipulator">
+    <joint name="shoulder_pan_joint" value="1.54"/>
+    <joint name="shoulder_lift_joint" value="-1.62"/>
+    <joint name="elbow_joint" value="1.40"/>
+    <joint name="wrist_1_joint" value="-1.20"/>
+    <joint name="wrist_2_joint" value="-1.60"/>
+    <joint name="wrist_3_joint" value="-0.11"/>
+  </group_state>
+
+  <!-- The upstream UR SRDF cannot know about an attached Robotiq. These are
+       the adjacent/overlapping parts of the manufacturer's 2F-85 assembly. -->
+  <disable_collisions link1="wrist_3_link" link2="ur_to_robotiq_link" reason="Adjacent"/>
+  <disable_collisions link1="ur_to_robotiq_link" link2="robotiq_85_base_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_left_inner_knuckle_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_left_knuckle_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_right_inner_knuckle_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_right_knuckle_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_left_knuckle_link" link2="robotiq_85_left_finger_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_left_finger_link" link2="robotiq_85_left_finger_tip_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_left_inner_knuckle_link" link2="robotiq_85_left_finger_tip_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_right_knuckle_link" link2="robotiq_85_right_finger_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_right_finger_link" link2="robotiq_85_right_finger_tip_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_right_inner_knuckle_link" link2="robotiq_85_right_finger_tip_link" reason="Adjacent"/>
+</robot>

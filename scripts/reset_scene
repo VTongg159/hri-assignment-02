@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import rclpy
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+from rcl_interfaces.srv import SetParametersAtomically
+
+
+def main():
+    rclpy.init()
+    node = rclpy.create_node("reset_scene")
+    client = node.create_client(SetParametersAtomically, "/execute_skill")
+    try:
+        if not client.wait_for_service(timeout_sec=15.0):
+            raise SystemExit("RESET FAILED: skill server unavailable")
+        request = SetParametersAtomically.Request()
+        request.parameters = [Parameter(
+            name=name,
+            value=ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=value),
+        ) for name, value in (("skill", "reset"), ("object", ""), ("zone", ""))]
+        future = client.call_async(request)
+        rclpy.spin_until_future_complete(node, future, timeout_sec=120.0)
+        if not future.done() or future.result() is None:
+            raise SystemExit("RESET FAILED: timed out")
+        result = future.result().result
+        print("RESET SUCCESS" if result.successful else f"RESET FAILED: {result.reason}")
+        if not result.successful:
+            raise SystemExit(1)
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

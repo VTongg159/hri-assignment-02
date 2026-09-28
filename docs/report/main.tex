@@ -1,0 +1,467 @@
+\documentclass[12pt,a4paper]{article}
+
+% Tài liệu được biên dịch bằng LuaLaTeX để hỗ trợ Unicode tiếng Việt ổn định.
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+\usepackage[vietnamese]{babel}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+% Hyperref được nạp sau các gói tạo float để tránh destination trùng lặp.
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  citecolor=black,
+  unicode=true,
+  pdftitle={Bài thực hành 02 -- Điều khiển ngữ nghĩa UR3e bằng LLM},
+  pdfauthor={Nguyễn Văn Tổng}
+}
+
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{3em}
+\setlist[itemize]{leftmargin=1.8em}
+\setlist[enumerate]{leftmargin=1.8em}
+
+\definecolor{codegreen}{rgb}{0,0.45,0}
+\definecolor{codegray}{rgb}{0.45,0.45,0.45}
+\definecolor{codeblue}{rgb}{0.08,0.20,0.60}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+\definecolor{rosblue}{RGB}{36,93,145}
+\definecolor{safegreen}{RGB}{55,118,77}
+
+\lstdefinestyle{reportcode}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen}\itshape,
+  keywordstyle=\color{codeblue}\bfseries,
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{purple},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=8pt,
+  showstringspaces=false,
+  tabsize=2,
+  frame=single,
+  columns=fullflexible
+}
+\lstset{style=reportcode}
+
+\newcommand{\projectpath}{\path{/home/admin1/hri_ws/src/ur3_llm_control}}
+\newcommand{\placeholder}[3]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{images/#1}{%
+      \includegraphics[width=0.90\linewidth]{images/#1}%
+    }{%
+      \fbox{\parbox[c][5.2cm][c]{0.85\linewidth}{\centering\textbf{Ảnh cần bổ sung}\par\medskip #2}}%
+    }
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\begin{titlepage}
+  \centering
+  \vspace*{0.8cm}
+
+  {\Large\bfseries ĐẠI HỌC QUỐC GIA HÀ NỘI\par}
+  \vspace{0.25cm}
+  {\Large\bfseries TRƯỜNG ĐẠI HỌC CÔNG NGHỆ\par}
+
+  \vspace{1.3cm}
+  \IfFileExists{Logo.png}{
+    \includegraphics[width=4.5cm]{Logo.png}
+  }{
+    \IfFileExists{images/Logo.png}{
+      \includegraphics[width=4.5cm]{images/Logo.png}
+    }{
+      \fbox{\parbox[c][3.5cm][c]{4.5cm}{\centering Logo\\nhà trường}}
+    }
+  }
+
+  \vspace{1.3cm}
+  {\Huge\bfseries BÀI THỰC HÀNH 02\par}
+  \vspace{0.4cm}
+  {\LARGE\bfseries Điều khiển ngữ nghĩa UR3e bằng LLM\\và Skill-based Planning\par}
+
+  \vspace{1.6cm}
+  \begin{flushleft}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{@{}>{\bfseries\raggedright\arraybackslash}p{5cm}p{9cm}@{}}
+      Họ và tên: & Nguyễn Văn Tổng \\
+      Mã sinh viên: & 23020766 \\
+      Lớp: & K68E-RE \\
+      Giảng viên hướng dẫn: & PGS. TS. Hoàng Văn Xiêm \\
+                            & KS. Nguyễn Quốc Bảo \\
+    \end{tabular}
+  \end{flushleft}
+
+  \vfill
+  {\large Hà Nội, 2026\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+\pagenumbering{arabic}
+
+\section{Giới thiệu}
+
+Mục tiêu của bài thực hành là xây dựng một hệ thống cho phép người dùng điều khiển robot UR3e trong mô phỏng bằng câu lệnh ngôn ngữ tự nhiên tiếng Anh hoặc tiếng Việt. Thay vì yêu cầu người dùng cung cấp tọa độ hay góc khớp, hệ thống chuyển yêu cầu ở mức ngữ nghĩa thành một chuỗi thao tác đơn giản, có thể kiểm tra và tái sử dụng. Ví dụ, yêu cầu đưa khối đỏ vào vùng B được chuyển thành ba skill theo thứ tự: \texttt{pick(red\_cube)}, \texttt{place(red\_cube, zone\_b)} và \texttt{home()}.
+
+Nguyên tắc thiết kế quan trọng nhất là tách biệt mô hình ngôn ngữ lớn khỏi lớp điều khiển chuyển động. LLM chỉ phân tích ý định và sắp xếp các robot skill đã định nghĩa trước; LLM không được phép sinh góc khớp, pose, vận tốc hoặc trajectory. Kế hoạch do LLM trả về phải có dạng JSON và đi qua một lớp kiểm tra nghiêm ngặt trước khi bất kỳ yêu cầu chuyển động nào được gửi tới robot. Sau bước kiểm tra, MoveIt~2 chịu trách nhiệm lập kế hoạch cho cánh tay, còn bộ điều khiển gripper xử lý chuyển động đóng/mở của Robotiq 2F-85.
+
+Cách phân tầng này tạo một ranh giới an toàn rõ ràng. Khả năng hiểu ngôn ngữ linh hoạt được đặt ở lớp trên, trong khi các hành động vật lý vẫn bị giới hạn trong một tập skill nhỏ, xác định trước và có trạng thái thực thi rõ ràng. Đây cũng là cơ sở để hệ thống có thể mở rộng thêm skill mà không cho LLM quyền điều khiển trực tiếp phần cứng.
+
+\section{Môi trường và kiến trúc hệ thống}
+
+\subsection{Môi trường triển khai}
+
+Project được triển khai tại \projectpath{} trên Ubuntu 24.04.4, ROS~2 Jazzy, Gazebo Harmonic và MoveIt~2. Robot là UR3e gắn gripper Robotiq 2F-85. Giao tiếp LLM sử dụng API tương thích OpenAI do 9Router cung cấp. Project hỗ trợ hai chế độ planner: \texttt{9router} cho LLM live và \texttt{mock} cho kiểm thử ngoại tuyến, trong đó cả hai chế độ đều đi qua cùng validator và cùng chuỗi thực thi robot.
+
+Model LLM không được hard-code trong source mà được lấy từ biến môi trường \texttt{NINEROUTER\_MODEL}. File \texttt{.env.example} hiện minh họa model \texttt{gemini/gemini-3.6-flash}; model dự kiến cho buổi demo là \texttt{cx/gpt-5.6-luna}. Kết quả live chỉ được công nhận sau khi ba biến \texttt{NINEROUTER\_BASE\_URL}, \texttt{NINEROUTER\_API\_KEY} và \texttt{NINEROUTER\_MODEL} được cấu hình và có log thực nghiệm tương ứng. API key không được lưu trong repository hoặc báo cáo.
+
+\begin{table}[H]
+  \centering
+  \caption{Các thành phần phần mềm chính của hệ thống.}
+  \label{tab:environment}
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabularx}{\linewidth}{@{}p{0.29\linewidth}X@{}}
+    \toprule
+    \textbf{Thành phần} & \textbf{Vai trò} \\
+    \midrule
+    ROS 2 Jazzy & Middleware, node, service, action và topic. \\
+    Gazebo Harmonic & Mô phỏng thế giới, robot và chuyển động cơ cấu gripper. \\
+    MoveIt 2 & PlanningScene, kiểm tra va chạm, IK và lập kế hoạch cánh tay. \\
+    UR3e & Cánh tay robot sáu bậc tự do. \\
+    Robotiq 2F-85 & Cơ cấu kẹp hai ngón với mesh và mimic joints chính thức. \\
+    9Router/LLM & Chuyển câu lệnh tự nhiên thành kế hoạch JSON ở mức skill. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Kiến trúc tổng thể}
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[
+      node distance=5mm and 10mm,
+      block/.style={draw, rounded corners, align=center, minimum width=35mm,
+                    minimum height=9mm, fill=blue!5},
+      safe/.style={block, fill=green!8, draw=safegreen},
+      actuator/.style={block, fill=orange!10},
+      arrow/.style={-{Latex[length=2.2mm]}, thick}
+    ]
+    \node[block] (command) {Câu lệnh ngôn ngữ tự nhiên};
+    \node[block, below=of command] (llm) {9Router / LLM planner};
+    \node[block, below=of llm] (json) {Kế hoạch JSON có cấu trúc};
+    \node[safe, below=of json] (validator) {Plan Validator};
+    \node[safe, below=of validator] (executor) {Skill Executor};
+    \node[block, below=of executor] (server) {C++ Skill Server};
+    \node[actuator, below left=8mm and 13mm of server] (moveit) {MoveIt 2\\PlanningScene + MoveGroup};
+    \node[actuator, below right=8mm and 13mm of server] (gripper) {Parallel gripper\\action controller};
+    \node[block, below=31mm of server] (gazebo) {UR3e + Robotiq 2F-85\\Gazebo Harmonic};
+
+    \draw[arrow] (command) -- (llm);
+    \draw[arrow] (llm) -- (json);
+    \draw[arrow] (json) -- (validator);
+    \draw[arrow] (validator) -- (executor);
+    \draw[arrow] (executor) -- (server);
+    \draw[arrow] (server) -- (moveit);
+    \draw[arrow] (server) -- (gripper);
+    \draw[arrow] (moveit) -- (gazebo);
+    \draw[arrow] (gripper) -- (gazebo);
+    \draw[arrow, dashed] (server.east) to[bend left=38] (gazebo.east);
+  \end{tikzpicture}
+  }
+  \caption{Kiến trúc xử lý câu lệnh và điều khiển robot.}
+  \label{fig:architecture}
+\end{figure}
+
+Node CLI nhận câu lệnh, ghép prompt hệ thống với ánh xạ nhiệm vụ cá nhân rồi gọi planner. Kết quả JSON được parse và kiểm tra schema, whitelist cũng như thứ tự trạng thái pick/place. \texttt{SkillExecutor} chỉ gọi skill tiếp theo khi skill trước thành công và dừng ngay khi có lỗi. Ở tầng ROS, \texttt{skill\_server} tiếp nhận yêu cầu qua service \texttt{/execute\_skill}, sử dụng MoveIt cho cánh tay và action \texttt{/robotiq\_gripper\_controller/gripper\_cmd} cho gripper. Trong thời gian giữ vật, server đồng bộ pose của model Gazebo với frame \texttt{gripper\_tcp}.
+
+\placeholder{architecture_runtime.png}{Các node và topic/action chính quan sát bằng \texttt{rqt\_graph} hoặc ROS CLI.}{fig:runtime-graph}
+
+\section{Thiết kế và triển khai hệ thống}
+
+\subsection{Môi trường Gazebo và PlanningScene}
+
+Thế giới mô phỏng gồm bàn thao tác, ba cube màu đỏ, vàng, xanh và ba vùng đích A, B, C. Bàn có tâm tại $(0.47,0,0.03)$~m và kích thước $0.56\times0.65\times0.06$~m. Mỗi cube có cạnh 0.05~m. Các pose được trình bày trong Bảng~\ref{tab:scene-poses}; frame quy chiếu lập kế hoạch là \texttt{base\_link}.
+
+\begin{table}[H]
+  \centering
+  \caption{Pose tâm của các cube và vùng đích trong frame \texttt{base\_link}.}
+  \label{tab:scene-poses}
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    \textbf{Đối tượng} & $x$ (m) & $y$ (m) & $z$ (m) \\
+    \midrule
+    \texttt{red\_cube}    & 0.250 & $-0.200$ & 0.085 \\
+    \texttt{yellow\_cube} & 0.250 & 0.000 & 0.085 \\
+    \texttt{blue\_cube}   & 0.250 & 0.200 & 0.085 \\
+    \texttt{zone\_a}      & 0.380 & $-0.120$ & 0.085 \\
+    \texttt{zone\_b}      & 0.380 & 0.000 & 0.085 \\
+    \texttt{zone\_c}      & 0.380 & 0.120 & 0.085 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\texttt{skill\_server.cpp} đưa bàn và các cube vào MoveIt PlanningScene dưới dạng collision box. Các model cube trong Gazebo được đặt ở chế độ tĩnh và chỉ giữ phần visual. Lựa chọn này là có chủ đích: nếu cube tĩnh vẫn có collision vật lý, nó không nhượng bộ lực kẹp và làm cơ cấu mimic của 2F-85 dừng trước khi đạt góc đóng. Collision hình hộp 50~mm vẫn được MoveIt quản lý, do đó đường đi của cánh tay không bỏ qua vật cản.
+
+File \texttt{config/scene.yaml} lưu các giá trị cảnh và thông số motion để thuận tiện theo dõi. Tuy nhiên, ở implementation hiện tại các pose tương ứng cũng được khai báo trực tiếp trong constructor của C++ skill server; vì vậy báo cáo không giả định rằng server tự động nạp toàn bộ file YAML này.
+
+\placeholder{gazebo_overview.png}{Toàn cảnh Gazebo: UR3e gắn Robotiq 2F-85, bàn, ba cube và ba vùng A/B/C.}{fig:gazebo-overview}
+\placeholder{rviz_combined_model.png}{Mô hình UR3e + Robotiq 2F-85 và các collision object trong RViz.}{fig:rviz-model}
+
+\subsection{Tích hợp Robotiq 2F-85}
+
+Gripper sử dụng package \texttt{robotiq\_description} từ repository chính thức của Robotiq~\cite{robotiq-repo}. Phiên bản upstream được cố định tại commit \path{8d7b8412ad685ffe1db5719da6e8fce6c1896e5e}. Model giữ nguyên cấu trúc link/joint và mesh hình học của nhà sản xuất. Macro adapter \texttt{ur\_to\_robotiq} nối \texttt{tool0} của UR3e với mount của gripper. MoveIt sử dụng semantic group \texttt{robotiq\_gripper}; end-effector thao tác của cánh tay là frame \texttt{gripper\_tcp}.
+
+TCP được đặt cách base gripper 0.130~m theo trục dọc của gripper. Giá trị này được xác định từ hình học mesh: gốc link fingertip nằm khoảng 0.098~m, trong khi pad còn kéo dài về phía trước; đặt TCP tại gốc link làm đầu ngón chạm bàn khi tâm TCP đi tới tâm cube. Vị trí 0.130~m nằm trong vùng pad hữu dụng và cho phép hai ngón bao quanh cube 50~mm.
+
+Joint chủ động là \texttt{robotiq\_85\_left\_knuckle\_joint}; các joint còn lại chuyển động theo các quan hệ mimic trong URDF chính thức. Một hệ \texttt{gz\_ros2\_control} thống nhất xuất sáu joint UR và joint chủ động của gripper, tránh race giữa hai controller manager. Gazebo được khởi chạy với Bullet Featherstone vì backend này xử lý cơ cấu mimic ổn định hơn trong cấu hình hiện tại.
+
+Bộ điều khiển gripper là \path{parallel_gripper_action_controller/GripperActionController} của ROS~2 Jazzy, sử dụng interface \path{control_msgs/action/ParallelGripperCommand}. Lệnh mở là 0.0~rad; với cube rộng 50~mm, skill server gửi góc đóng 0.35~rad. Trong kiểm thử không tải, trạng thái đo được đạt khoảng 0.330~rad khi đóng và 0.019~rad khi mở, phù hợp goal tolerance 0.02~rad.
+
+\begin{table}[H]
+  \centering
+  \caption{Các interface điều khiển chính.}
+  \label{tab:controllers}
+  \begin{tabularx}{\linewidth}{@{}p{0.31\linewidth}X@{}}
+    \toprule
+    \textbf{Interface} & \textbf{Chức năng} \\
+    \midrule
+    \path{joint_trajectory_controller} & Thực thi trajectory sáu joint của UR3e. \\
+    \path{robotiq_gripper_controller} & Điều khiển joint knuckle qua ParallelGripperCommand. \\
+    \path{joint_state_broadcaster} & Xuất trạng thái joint cánh tay và gripper. \\
+    \path{/world/hri_assignment/set_pose} & Cập nhật model cube khi attach, follow và detach. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\placeholder{controllers_active.png}{Terminal hiển thị ba controller ở trạng thái \texttt{active}.}{fig:controllers-active}
+
+\subsection{Robot skills và mô phỏng thao tác gắp}
+
+LLM chỉ được lựa chọn ba skill \texttt{home()}, \texttt{pick(object)} và \texttt{place(object, zone)}. Skill \texttt{home()} đưa robot về named state \texttt{up}, là tư thế an toàn cho robot đặt cạnh mặt bàn. Các tham số vận tốc và gia tốc được giới hạn ở hệ số 0.08; OMPL với RRTConnect được sử dụng để tìm đường tránh bàn và các collision object.
+
+Quy trình \texttt{pick} gồm: di chuyển tới pose phía trên cube; mở gripper; tạm loại collision của cube được chọn khỏi world cho đoạn hạ có chủ đích; hạ TCP; đóng ngón tới 0.35~rad; khôi phục cube và attach nó vào \texttt{gripper\_tcp}; sau đó nâng robot về cấu hình phía trên. Chỉ sau khi action đóng ngón báo thành công thì object mới được attach.
+
+Khi object đang được giữ, timer chu kỳ 50~ms đọc transform từ \texttt{base\_link} tới \texttt{gripper\_tcp} và gửi pose tới Gazebo. Vì vậy cube đi theo gripper liên tục trong lúc nâng và vận chuyển, thay vì chỉ nhảy vị trí tại đầu và cuối skill.
+
+Quy trình \texttt{place} di chuyển tới phía trên zone, hạ TCP, mở gripper, dừng follow, detach object khỏi MoveIt, khôi phục collision object tại pose zone rồi rút robot lên. Đây là abstraction attach/detach dành cho simulation; hình học Robotiq, joint chủ động và chuyển động mimic của các ngón vẫn được mô phỏng thật. Giải pháp không được xem là grasp hoàn toàn dựa trên contact physics, nhưng cũng không phải thao tác teleport tức thời vì ngón kẹp đóng/mở trước attach/detach và vật đi theo TCP trong toàn bộ chuyển động.
+
+\placeholder{approach_cube.png}{UR3e tiếp cận phía trên \texttt{red\_cube} với gripper đang mở.}{fig:approach}
+\placeholder{gripper_close.png}{Robotiq 2F-85 đóng hai ngón quanh \texttt{red\_cube}.}{fig:gripper-close}
+\placeholder{cube_follow.png}{Cube đi theo \texttt{gripper\_tcp} khi robot nâng hoặc vận chuyển.}{fig:cube-follow}
+\placeholder{place_zone.png}{Robot mở gripper và đặt cube vào vùng đích.}{fig:place-zone}
+
+\subsection{LLM planner, validator và executor}
+
+System prompt giới hạn miền hành động ở đúng ba skill, ba object và ba zone. LLM được yêu cầu trả JSON thuần, không Markdown hoặc diễn giải. Một kế hoạch hợp lệ có dạng:
+
+\begin{lstlisting}[language={},caption={Ví dụ kế hoạch JSON hợp lệ.},label={lst:json-plan}]
+{"plan":[
+  {"skill":"pick","object":"red_cube"},
+  {"skill":"place","object":"red_cube","zone":"zone_b"},
+  {"skill":"home"}
+]}
+\end{lstlisting}
+
+Client gửi system prompt, ánh xạ cá nhân và câu lệnh người dùng đến endpoint \texttt{/v1/chat/completions}, với temperature bằng 0. Client chấp nhận cả JSON response thông thường và stream SSE, đồng thời retry có giới hạn đối với HTTP 429, 502, 503 và 504. Nếu thiếu cấu hình, lỗi mạng hoặc response không hợp lệ, client trả lỗi và robot không chuyển động.
+
+Validator kiểm tra cú pháp JSON, tập field chính xác, skill/object/zone trong whitelist và trạng thái pick/place. Ví dụ, \texttt{place} không có \texttt{pick} tương ứng, \texttt{green\_cube}, \texttt{zone\_d}, field dư hoặc skill tùy ý đều bị từ chối trước khi gọi service robot. Sau validator, \texttt{SkillExecutor} chạy tuần tự và dừng tại lỗi đầu tiên. ROS service \texttt{/execute\_skill} hiện dùng kiểu \texttt{rcl\_interfaces/srv/SetParametersAtomically}; dữ liệu trả về có dạng \texttt{STATUS|message} để phía Python không diễn giải nội dung tùy ý.
+
+\section{Cá nhân hóa nhiệm vụ và kịch bản thực nghiệm}
+
+Hai chữ số cuối của mã sinh viên 23020766 là $XX=66$. Chỉ số hoán vị được tính theo công thức
+\[
+  P = XX \bmod 6 = 66 \bmod 6 = 0.
+\]
+Với $P=0$, chương trình \texttt{student\_task.py} tính được ánh xạ trong Bảng~\ref{tab:student-map}. Ánh xạ được sinh bởi chương trình và được đưa vào context của planner; nó không được hard-code trong prompt LLM.
+
+\begin{table}[H]
+  \centering
+  \caption{Ánh xạ nhiệm vụ cho mã sinh viên 23020766.}
+  \label{tab:student-map}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Vùng} & \textbf{Object} & \textbf{Màu} \\
+    \midrule
+    Zone A & \texttt{red\_cube} & Đỏ \\
+    Zone B & \texttt{yellow\_cube} & Vàng \\
+    Zone C & \texttt{blue\_cube} & Xanh \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Kịch bản cơ bản sử dụng câu lệnh ``Please put the red cube in zone B.''. Kế hoạch mong đợi là \texttt{pick(red\_cube)}, \texttt{place(red\_cube, zone\_b)} rồi \texttt{home()}. Kịch bản này kiểm tra một chu trình pick/place hoàn chỉnh, chuyển động gripper và pose cuối của cube.
+
+Kịch bản nâng cao sử dụng câu lệnh ``Arrange all objects according to my student ID.''. Với ánh xạ $P=0$, kế hoạch gồm bảy bước: lần lượt đưa red cube vào A, yellow cube vào B, blue cube vào C, sau đó về home. \texttt{buffer\_zone} có trong cấu hình và unit test trạng thái để minh họa cách phá chu trình khi các zone đã bị chiếm; tuy nhiên nó không nằm trong whitelist zone của LLM và không được dùng trong lần chạy advanced hiện tại, nơi ba cube bắt đầu từ các vị trí nguồn riêng.
+
+\section{Kết quả và đánh giá}
+
+\subsection{Kết quả kiểm thử}
+
+Workspace được build thành công với năm package áp dụng cho bài thực hành, gồm Assignment~01 không thay đổi, ba package Robotiq cần cho simulation và \texttt{ur3\_llm\_control}. Các package serial driver, hardware test và TSF camera calibration của upstream được đánh dấu \texttt{COLCON\_IGNORE} vì không tham gia mô phỏng và serial driver yêu cầu thư viện phần cứng riêng.
+
+URDF và SRDF kết hợp được parse thành công; model chứa UR3e, adapter, toàn bộ link Robotiq, mimic joints, semantic gripper group và \texttt{gripper\_tcp}. Lệnh test báo 20 test, 0 error, 0 failure và 0 skipped. Các test bao phủ schema validator, các plan không an toàn, cả sáu mapping MSSV, state transition, trường hợp zone bị chiếm, chu trình buffer và giải mã response 9Router.
+
+\begin{table}[H]
+  \centering
+  \caption{Tổng hợp kết quả đã xác minh.}
+  \label{tab:results}
+  \begin{tabularx}{\linewidth}{@{}p{0.38\linewidth}p{0.19\linewidth}X@{}}
+    \toprule
+    \textbf{Thử nghiệm} & \textbf{Kết quả} & \textbf{Ghi chú} \\
+    \midrule
+    Build workspace simulation & SUCCESS & 5 package hoàn thành. \\
+    URDF/SRDF combined model & SUCCESS & Parse được model UR3e + 2F-85. \\
+    Unit/integration logic tests & SUCCESS & 20/20 test đạt. \\
+    Ba controller runtime & SUCCESS & Cả ba ở trạng thái active. \\
+    Gripper close/open & SUCCESS & Đo khoảng 0.330/0.019 rad. \\
+    Basic physical simulation & SUCCESS & Thực thi bằng mock semantic planner. \\
+    Advanced physical simulation & SUCCESS & Đủ bảy skill, ba pose cuối chính xác. \\
+    Invalid plan & REJECTED & Bị chặn trước service robot. \\
+    English qua LLM live & CHƯA XÁC MINH & Cần cấu hình 9Router và lưu log demo. \\
+    Vietnamese qua LLM live & CHƯA XÁC MINH & Cần cấu hình 9Router và lưu log demo. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Kịch bản basic trong mô phỏng hoàn thành \texttt{pick}, \texttt{place} và \texttt{home}, đưa red cube tới $(0.380,0.000,0.085)$~m. Kịch bản advanced hoàn thành cả bảy skill. Pose cuối do Gazebo báo về được liệt kê trong Bảng~\ref{tab:advanced-result}, trùng với các pose mục tiêu.
+
+\begin{table}[H]
+  \centering
+  \caption{Pose cuối của kịch bản nâng cao.}
+  \label{tab:advanced-result}
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Object} & \textbf{Zone} & $x$ (m) & $y$ (m) & $z$ (m) \\
+    \midrule
+    \texttt{red\_cube}    & A & 0.380 & $-0.120$ & 0.085 \\
+    \texttt{yellow\_cube} & B & 0.380 & 0.000 & 0.085 \\
+    \texttt{blue\_cube}   & C & 0.380 & 0.120 & 0.085 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\placeholder{terminal_plan.png}{Terminal hiển thị kế hoạch JSON/skill plan sau khi LLM hoặc mock planner xử lý câu lệnh.}{fig:terminal-plan}
+\placeholder{task_success.png}{Terminal hiển thị các skill SUCCESS và dòng \texttt{TASK SUCCESS}.}{fig:task-success}
+\placeholder{advanced_final.png}{Trạng thái cuối bài nâng cao: red ở A, yellow ở B và blue ở C.}{fig:advanced-final}
+\placeholder{test_result.png}{Terminal hiển thị \texttt{20 tests, 0 errors, 0 failures, 0 skipped}.}{fig:test-result}
+
+\subsection{Các vấn đề triển khai và cách xử lý}
+
+Phiên bản ban đầu chỉ có cánh tay UR3e nên thao tác gắp chưa được thể hiện. Việc tích hợp model Robotiq chính thức giải quyết phần hình học và chuyển động ngón, nhưng tạo thêm yêu cầu về controller Jazzy, mimic joints, TCP và collision semantics. Controller được chọn đúng interface \texttt{ParallelGripperCommand}; cánh tay và gripper được đưa vào cùng một hệ Gazebo ros2\_control để tránh tình trạng đăng ký controller không ổn định.
+
+TCP 0.098~m ban đầu trùng gốc fingertip link và làm mesh đầu ngón va chạm bàn tại pose gắp. Việc đo biên mesh cho thấy pad kéo dài xa hơn, từ đó TCP được hiệu chỉnh thành 0.130~m. Một vấn đề khác là cube tĩnh có collision vật lý làm gripper dừng khoảng 0.178~rad và action timeout. Sau khi chuyển collision cube sang PlanningScene và giữ visual-only trong Gazebo, gripper đạt mục tiêu, cube vẫn được kiểm tra va chạm khi lập kế hoạch và chỉ attach sau khi đóng ngón.
+
+Trong lập kế hoạch cánh tay, hệ thống giữ nhánh IK gần trạng thái hiện tại cho các đoạn hạ/nâng thẳng đứng, lưu cấu hình joint phía trên cube để quay lại đúng nhánh, và unwrap \texttt{wrist\_3\_joint} quanh giá trị đo nhằm tránh sai khác tương đương $2\pi$. Tư thế startup gập an toàn cũng ngăn model thẳng ban đầu cắt qua mặt bàn.
+
+Ở lớp LLM, khi thiếu biến môi trường 9Router, CLI in \texttt{PLAN REJECTED} và không gửi skill. Đây là hành vi fail-closed mong muốn, không phải lỗi chuyển động robot. Chế độ mock cho phép kiểm tra độc lập toàn bộ validator, service và robot simulation trước khi cấu hình provider live. Các vấn đề provider, quota hoặc phiên bản Node.js chỉ nên được kết luận từ log của lần demo live cuối cùng.
+
+\section{Kết luận}
+
+Bài thực hành đã xây dựng được chuỗi xử lý hoàn chỉnh từ câu lệnh tự nhiên tới chuyển động UR3e trong Gazebo. LLM chỉ đảm nhiệm semantic planning trong miền skill giới hạn; validator kiểm tra cấu trúc và trạng thái; MoveIt~2 lập kế hoạch cánh tay; còn action controller điều khiển Robotiq 2F-85. Hai nhiệm vụ basic và advanced đã được thực thi thành công trong mô phỏng với mock semantic planner, đồng thời pose cuối của ba cube khớp các vùng cá nhân hóa theo mã sinh viên.
+
+Kiến trúc skill-based giúp hành vi robot dễ kiểm tra, tái sử dụng và mở rộng hơn so với việc để LLM sinh lệnh joint trực tiếp. Hạn chế chính là thao tác giữ vật dùng abstraction attach/detach thay vì contact grasp hoàn toàn vật lý; ngoài ra kết quả LLM live phụ thuộc cấu hình và trạng thái dịch vụ 9Router. Hướng phát triển tiếp theo là bổ sung perception, phản hồi grasp, quản lý buffer ở runtime và kiểm thử live có lưu log tái lập được.
+
+\section*{Liên kết sản phẩm}
+\addcontentsline{toc}{section}{Liên kết sản phẩm}
+
+\begin{itemize}
+  \item GitHub repository: \textbf{[ĐIỀN LINK GITHUB]}
+  \item Video demo: \textbf{[ĐIỀN LINK VIDEO]}
+  \item Model LLM của demo live: \textbf{[XÁC NHẬN MODEL SAU KHI CHẠY]}
+  \item Log LLM live tiếng Anh/tiếng Việt: \textbf{[BỔ SUNG SAU KHI CẤU HÌNH 9ROUTER]}
+\end{itemize}
+
+\begin{thebibliography}{9}
+  \bibitem{ros2-jazzy}
+  Open Robotics, \emph{ROS 2 Jazzy documentation},
+  \url{https://docs.ros.org/en/jazzy/}.
+
+  \bibitem{moveit2}
+  MoveIt, \emph{MoveIt 2 documentation},
+  \url{https://moveit.picknik.ai/main/index.html}.
+
+  \bibitem{gazebo-harmonic}
+  Open Robotics, \emph{Gazebo Harmonic documentation},
+  \url{https://gazebosim.org/docs/harmonic/}.
+
+  \bibitem{ros2-control}
+  ros-controls, \emph{ros2\_control documentation for Jazzy},
+  \url{https://control.ros.org/jazzy/index.html}.
+
+  \bibitem{ur-description}
+  Universal Robots, \emph{Universal Robots ROS 2 Description},
+  \url{https://github.com/UniversalRobots/Universal_Robots_ROS2_Description}.
+
+  \bibitem{robotiq-repo}
+  Robotiq, \emph{Official ROS repository for Robotiq grippers},
+  \url{https://github.com/robotiq/ros}.
+\end{thebibliography}
+
+\appendix
+\section{Lệnh build, chạy và kiểm thử}
+
+\begin{lstlisting}[language=bash,caption={Build và kiểm thử workspace.}]
+cd /home/admin1/hri_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+colcon test --packages-select ur3_llm_control
+colcon test-result --verbose
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption={Khởi chạy mô phỏng và kiểm thử không cần API key.}]
+# Terminal 1
+ros2 launch ur3_llm_control llm_robot.launch.py
+
+# Terminal 2
+ros2 run ur3_llm_control task_cli --mode mock \
+  "Please put the red cube in zone B."
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption={Cấu hình LLM live qua 9Router; không ghi key thật vào báo cáo.}]
+export NINEROUTER_BASE_URL="http://localhost:20128/v1"
+export NINEROUTER_API_KEY="<YOUR_KEY>"
+export NINEROUTER_MODEL="cx/gpt-5.6-luna"
+ros2 run ur3_llm_control task_cli
+\end{lstlisting}
+
+\end{document}

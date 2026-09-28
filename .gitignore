@@ -1,0 +1,15 @@
+build/
+install/
+log/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.aux
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+.env
+.env.*
+!.env.example

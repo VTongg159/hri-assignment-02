@@ -1,0 +1,21 @@
+scene:
+  planning_frame: base_link
+  table:
+    position: [0.47, 0.0, 0.03]
+    size: [0.56, 0.65, 0.06]
+  objects:
+    red_cube: {position: [0.25, -0.20, 0.085], color: [0.9, 0.05, 0.05, 1.0]}
+    yellow_cube: {position: [0.25, 0.0, 0.085], color: [0.95, 0.8, 0.05, 1.0]}
+    blue_cube: {position: [0.25, 0.20, 0.085], color: [0.05, 0.15, 0.9, 1.0]}
+  zones:
+    zone_a: {position: [0.38, -0.12, 0.085]}
+    zone_b: {position: [0.38, 0.0, 0.085]}
+    zone_c: {position: [0.38, 0.12, 0.085]}
+  buffer_zone: {position: [0.36, 0.26, 0.085]}
+  motion:
+    approach_height: 0.18
+    grasp_height: 0.14
+    velocity_scaling: 0.08
+    acceleration_scaling: 0.08
+    planning_time: 10.0
+    planning_attempts: 10

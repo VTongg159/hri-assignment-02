@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find ur_description)/urdf/inc/ur_joint_control.xacro"/>
+
+  <!-- A single Gazebo hardware system avoids the controller-manager race that
+       occurs when the arm and end effector are exported as separate systems. -->
+  <xacro:macro name="ur3e_robotiq_ros2_control" params="name tf_prefix initial_positions">
+    <ros2_control name="${name}" type="system">
+      <hardware>
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </hardware>
+      <xacro:ur_joint_control_description
+        tf_prefix="${tf_prefix}"
+        initial_positions="${initial_positions}"/>
+      <joint name="robotiq_85_left_knuckle_joint">
+        <command_interface name="position"/>
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="velocity"/>
+      </joint>
+    </ros2_control>
+  </xacro:macro>
+</robot>
